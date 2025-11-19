@@ -17,6 +17,18 @@ IConfiguration config = new ConfigurationBuilder()
     .AddIniFile("Configurations\\config.ini")
     //NetEscapades.Configuration.Yaml
     .AddYamlFile("Configurations\\config.yaml")
+
+    //Microsoft.Extensions.Configuration.CommandLine
+    //.AddCommandLine(args)
+    //przykład mapowania skróconej nazwy przełącznika na klucz konfiguracyjny
+    //przykład użycia: ConsoleApp.exe -c 5 --alamakota "kot ma ale"
+    .AddCommandLine(args, new Dictionary<string, string> { { "-z1", "zmienna1" } })
+
+    //Microsoft.Extensions.Configuration.EnvironmentVariables
+    //domyślnie pobiera wszystkie zmienne środowiskowe
+    //zmienne ładowane są tylko przy starcie hosta aplikacji (procesu)
+    .AddEnvironmentVariables()
+
     .Build();
 
 
@@ -42,6 +54,17 @@ Console.WriteLine($"{greetingsSection["Value"]} from {greetingsSection["Target:F
 var targetSection = greetingsSection.GetSection("Target");
 Console.WriteLine($"{greetingsSection["Value"]} from {targetSection["From"]} to {targetSection["To"]}");
 
+Console.WriteLine();
+
+Console.WriteLine(config["zmienna1"]);
+Console.WriteLine(config["zmienna2"]);
+Console.WriteLine(config["zmienna3"]);
+
+Console.WriteLine();
+
+Console.WriteLine(config["alamakota"]);
+
+Console.ReadLine();
 
 void Introduction() {
 
