@@ -1,5 +1,6 @@
 ﻿
 
+using ConsoleApp.Configurations.Models;
 using Microsoft.Extensions.Configuration;
 using System.Runtime.CompilerServices;
 
@@ -33,7 +34,9 @@ IConfiguration config = new ConfigurationBuilder()
 
 
 
-for(int i = 0; i < int.Parse(config["Count"]); i++)
+//for(int i = 0; i < int.Parse(config["Count"]); i++)
+//binder pozwala nam pobierać wartości z konfiguracji o wskazanym typie (nie tylko string)
+for (int i = 0; i < config.GetValue<int>("Count"); i++)
 {
     Console.WriteLine(config["HelloJson"]);
     Console.WriteLine(config["HelloXML"]);
@@ -64,7 +67,20 @@ Console.WriteLine();
 
 Console.WriteLine(config["alamakota"]);
 
+
+//Microsoft.Extensions.Configuration.Binder
+//bindujemy konfigurację do wskazanego obiektu
+/*var greetings = new Greetings();
+//config.GetSection("Greetings").Bind(greetings);
+config.Bind("Greetings", greetings);*/
+
+//wytwarza obiekt i binduje konfigurację do wskazanego typu
+var greetings = config.GetSection("Greetings").Get<Greetings>();
+
+Console.WriteLine($"{greetings.Value} from {greetings.Target.From} to {greetings.Target.To}");
+
 Console.ReadLine();
+
 
 void Introduction() {
 

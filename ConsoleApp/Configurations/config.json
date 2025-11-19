@@ -4,6 +4,7 @@
 
   "Greetings": {
     "Value": "Hello",
+    "SomeInt": 55,
     "Target": {
       "From": "Json",
       "To": "Tom"
