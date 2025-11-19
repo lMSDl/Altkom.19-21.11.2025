@@ -1,7 +1,9 @@
 ﻿
 
 using ConsoleApp.Configurations.Models;
+using ConsoleApp.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.CompilerServices;
 
 //Microsoft.Extensions.Configuration
@@ -12,9 +14,9 @@ IConfiguration config = new ConfigurationBuilder()
 
     //Microsoft.Extensions.Configuration.Json
     .AddJsonFile("Configurations\\config.json", optional: true) //optional: true - plik może nie istnieć
-    //Microsoft.Extensions.Configuration.Xml
+                                                                //Microsoft.Extensions.Configuration.Xml
     .AddXmlFile("Configurations\\config.xml", optional: false, reloadOnChange: true) //reloadOnChange: true - automatyczne przeładowanie konfiguracji przy zmianie pliku bez restartu aplikacji
-    //Microsoft.Extensions.Configuration.Ini
+                                                                                     //Microsoft.Extensions.Configuration.Ini
     .AddIniFile("Configurations\\config.ini")
     //NetEscapades.Configuration.Yaml
     .AddYamlFile("Configurations\\config.yaml")
@@ -32,57 +34,77 @@ IConfiguration config = new ConfigurationBuilder()
 
     .Build();
 
+//obiekt do konfiguracji wstrzykiwania zależności
+var serviceCollection = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
 
+//rejestracja serwisów
 
-//for(int i = 0; i < int.Parse(config["Count"]); i++)
-//binder pozwala nam pobierać wartości z konfiguracji o wskazanym typie (nie tylko string)
-for (int i = 0; i < config.GetValue<int>("Count"); i++)
+//transient - zawsze nowa instancja
+
+if (DateTime.Now.Second % 2 == 0)
 {
-    Console.WriteLine(config["HelloJson"]);
-    Console.WriteLine(config["HelloXML"]);
-    Console.WriteLine(config["HelloIni"]);
-    //await Task.Delay(1000);
+    //automatyczna rejestracja klasy na interfejs
+    serviceCollection.AddTransient<IOutputService, DebugOutputService>();
+}
+else
+{
+    //manualna rejestracja klasy na interfejs z parametrem konstruktora
+    serviceCollection.AddTransient<IOutputService>(localServiceProvider =>
+                                                    //pobieramy wymagany serwis z kontenera
+                                                    new DebugOutputService(localServiceProvider.GetRequiredService<IFontService>(),
+                                                    //parameter count przekazany ręcznie
+                                                    5));
 }
 
-Console.WriteLine();
+//scoped - jedna instancja na scope (w aplikacji konsolowej scope działa jak singleton)
+serviceCollection.AddScoped<IOutputService, ConsoleOutputService>();
 
-//do zagnieżdżonych wartości można odwołać się poprzez dwukropek
-Console.WriteLine($"{config["Greetings:Value"]} from {config["Greetings:Target:From"]} to {config["Greetings:Target:To"]}");
-
-//lub pobrać sekcję i odwoływać się do niej poprzez indeksator
-var greetingsSection = config.GetSection("Greetings");
-Console.WriteLine($"{greetingsSection["Value"]} from {greetingsSection["Target:From"]} to {greetingsSection["Target:To"]}");
-
-//var targetSection = config.GetSection("Greetings:Target");
-var targetSection = greetingsSection.GetSection("Target");
-Console.WriteLine($"{greetingsSection["Value"]} from {targetSection["From"]} to {targetSection["To"]}");
-
-Console.WriteLine();
-
-Console.WriteLine(config["zmienna1"]);
-Console.WriteLine(config["zmienna2"]);
-Console.WriteLine(config["zmienna3"]);
-
-Console.WriteLine();
-
-Console.WriteLine(config["alamakota"]);
+//singleton - zawsze ta sama instancja
+serviceCollection.AddSingleton<IFontService, SubZeroFontService>();
+serviceCollection.AddSingleton<IFontService, StandardFontService>();
 
 
-//Microsoft.Extensions.Configuration.Binder
-//bindujemy konfigurację do wskazanego obiektu
-/*var greetings = new Greetings();
-//config.GetSection("Greetings").Bind(greetings);
-config.Bind("Greetings", greetings);*/
-
-//wytwarza obiekt i binduje konfigurację do wskazanego typu
-var greetings = config.GetSection("Greetings").Get<Greetings>();
-
-Console.WriteLine($"{greetings.Value} from {greetings.Target.From} to {greetings.Target.To}");
-
-Console.ReadLine();
+//zbudowanie dostawcy usług
+var serviceProvider = serviceCollection.BuildServiceProvider();
 
 
-void Introduction() {
+//pobranie pojedynczej usługi - jeśli wiele usług pod tym samym interfejsem, powoduje wybranie tej ostatnio zarejestrowanej
+var outputService = serviceProvider.GetRequiredService<IOutputService>();
+outputService.Print("Hello from Output Service!");
+
+
+//pobieramy kolekcję usług o tym samym zarejestrowanym interfejsie
+foreach (var service in serviceProvider.GetServices<IOutputService>())
+{
+    service.Print("Hello from multiple Output Services!");
+}
+
+
+
+//symulacja scope - w aplikacji webowej scope jest tworzony na czas obsługi żądania
+for (int i = 0; i < 3; i++)
+{
+    using (var scope = serviceProvider.CreateScope())
+    {
+        {
+            outputService = scope.ServiceProvider.GetRequiredService<IOutputService>();
+            outputService.Print($"Hello from scoped Output Service! Scope {i + 1}");
+        }
+        {
+            outputService = scope.ServiceProvider.GetRequiredService<IOutputService>();
+            outputService.Print($"Hello from scoped Output Service! Scope {i + 1} - second call");
+        }    
+    
+    }
+
+}
+
+
+    Console.ReadLine();
+
+
+void Introduction()
+{
 
     //instrukcje najwyższego poziomu - top-level statements
     //pozwalają na pisanie kodu bez konieczności definiowania klasy i metody Main
@@ -118,4 +140,52 @@ void Introduction() {
         }
 
     }
+}
+
+static void Configuration(IConfiguration config)
+{
+    //for(int i = 0; i < int.Parse(config["Count"]); i++)
+    //binder pozwala nam pobierać wartości z konfiguracji o wskazanym typie (nie tylko string)
+    for (int i = 0; i < config.GetValue<int>("Count"); i++)
+    {
+        Console.WriteLine(config["HelloJson"]);
+        Console.WriteLine(config["HelloXML"]);
+        Console.WriteLine(config["HelloIni"]);
+        //await Task.Delay(1000);
+    }
+
+    Console.WriteLine();
+
+    //do zagnieżdżonych wartości można odwołać się poprzez dwukropek
+    Console.WriteLine($"{config["Greetings:Value"]} from {config["Greetings:Target:From"]} to {config["Greetings:Target:To"]}");
+
+    //lub pobrać sekcję i odwoływać się do niej poprzez indeksator
+    var greetingsSection = config.GetSection("Greetings");
+    Console.WriteLine($"{greetingsSection["Value"]} from {greetingsSection["Target:From"]} to {greetingsSection["Target:To"]}");
+
+    //var targetSection = config.GetSection("Greetings:Target");
+    var targetSection = greetingsSection.GetSection("Target");
+    Console.WriteLine($"{greetingsSection["Value"]} from {targetSection["From"]} to {targetSection["To"]}");
+
+    Console.WriteLine();
+
+    Console.WriteLine(config["zmienna1"]);
+    Console.WriteLine(config["zmienna2"]);
+    Console.WriteLine(config["zmienna3"]);
+
+    Console.WriteLine();
+
+    Console.WriteLine(config["alamakota"]);
+
+
+    //Microsoft.Extensions.Configuration.Binder
+    //bindujemy konfigurację do wskazanego obiektu
+    /*var greetings = new Greetings();
+    //config.GetSection("Greetings").Bind(greetings);
+    config.Bind("Greetings", greetings);*/
+
+    //wytwarza obiekt i binduje konfigurację do wskazanego typu
+    var greetings = config.GetSection("Greetings").Get<Greetings>();
+
+    Console.WriteLine($"{greetings.Value} from {greetings.Target.From} to {greetings.Target.To}");
 }

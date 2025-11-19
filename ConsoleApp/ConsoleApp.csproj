@@ -8,7 +8,8 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<Using Remove="System" />		
+		<Using Remove="System" />
+		<PackageReference Include="Figgle" Version="0.5.1" />		
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />		
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />		
 		<PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.0" />		
@@ -17,6 +18,7 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Ini" Version="10.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Xml" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
 		<PackageReference Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
 		<Using Include="System.Text.Json" />
 	</ItemGroup>
