@@ -1,2 +1,8 @@
 HelloYaml: Yaml
 Count: 42
+
+Greetings:
+  Value: Welcome
+  Target:
+    From: YAML
+    To: Eva

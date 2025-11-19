@@ -2,4 +2,12 @@
 <config>
 	<HelloXML>XML</HelloXML>
 	<count>3</count>
+
+	<Greetings>
+		<Value>Hi</Value>
+		<Target>
+			<From>XML</From>
+			<To>Mark</To>
+		</Target>
+	</Greetings>
 </config>

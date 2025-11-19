@@ -1,6 +1,7 @@
 ﻿
 
 using Microsoft.Extensions.Configuration;
+using System.Runtime.CompilerServices;
 
 //Microsoft.Extensions.Configuration
 IConfiguration config = new ConfigurationBuilder()
@@ -25,9 +26,21 @@ for(int i = 0; i < int.Parse(config["Count"]); i++)
     Console.WriteLine(config["HelloJson"]);
     Console.WriteLine(config["HelloXML"]);
     Console.WriteLine(config["HelloIni"]);
-    await Task.Delay(1000);
+    //await Task.Delay(1000);
 }
 
+Console.WriteLine();
+
+//do zagnieżdżonych wartości można odwołać się poprzez dwukropek
+Console.WriteLine($"{config["Greetings:Value"]} from {config["Greetings:Target:From"]} to {config["Greetings:Target:To"]}");
+
+//lub pobrać sekcję i odwoływać się do niej poprzez indeksator
+var greetingsSection = config.GetSection("Greetings");
+Console.WriteLine($"{greetingsSection["Value"]} from {greetingsSection["Target:From"]} to {greetingsSection["Target:To"]}");
+
+//var targetSection = config.GetSection("Greetings:Target");
+var targetSection = greetingsSection.GetSection("Target");
+Console.WriteLine($"{greetingsSection["Value"]} from {targetSection["From"]} to {targetSection["To"]}");
 
 
 void Introduction() {
