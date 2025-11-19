@@ -1,4 +1,7 @@
-﻿namespace ConsoleApp.Services
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace ConsoleApp.Services
 {
     internal class DebugOutputService : BaseOutputService
     {
@@ -7,6 +10,9 @@
         public DebugOutputService(IFontService fontService, IServiceProvider serviceProvider) : base(fontService)
         {
             Console.WriteLine("DebugOutputService constructor");
+            //możemy wstrzyknąć IServiceProvider, aby pobrać dodatkowe zależności
+            //pobranie parametru count z serwisu
+            _count = serviceProvider.GetRequiredService<IConfiguration>().GetValue<int>("Count");
         }
         public DebugOutputService(IFontService fontService, int count) : base(fontService)
         {

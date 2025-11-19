@@ -39,8 +39,10 @@ var serviceCollection = new Microsoft.Extensions.DependencyInjection.ServiceColl
 
 //rejestracja serwisów
 
-//transient - zawsze nowa instancja
+serviceCollection.AddSingleton<IConfiguration>(config);
 
+
+//transient - zawsze nowa instancja
 if (DateTime.Now.Second % 2 == 0)
 {
     //automatyczna rejestracja klasy na interfejs
