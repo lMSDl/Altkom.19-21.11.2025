@@ -33,6 +33,67 @@ var app = builder.Build();
 //app.Services
 
 
+//middleware - mo¿liwoœæ wykonania akcji przed i po przekazaniu kontekstu do kolejnego middeware
+app.Use(async (context, next) =>
+{
+
+    Console.WriteLine("Begin of Use1");
+
+    await next(context);
+
+    Console.WriteLine("End of Use1");
+});
+
+
+//przekierowanie do nowego potoku na podstawie œcie¿ki (path) zapytania
+app.Map("/hello", helloApp =>
+{
+    helloApp.Use(async (context, next) =>
+    {
+        Console.WriteLine("Begin of Hello Use");
+        await next(context);
+        Console.WriteLine("End of Hello Use");
+    });
+
+    helloApp.Run(async (context) =>
+    {
+        Console.WriteLine("Hello Run: Hello World!");
+        await context.Response.WriteAsync("Hello World from /hello!");
+    });
+});
+
+
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Begin of Use2");
+    await next(context);
+    Console.WriteLine("End of Use2");
+});
+
+//przekierowanie do nowego potoku na podstawie warunku (predicate) - w tym przyk³adzie sprawdzamy czy w zapytaniu jest parametr "name"
+app.MapWhen(context => context.Request.Query.ContainsKey("name"), mappedApp =>
+{
+    mappedApp.Run(async context =>
+    {
+        var name = context.Request.Query["name"];
+
+        Console.WriteLine($"MapWhen: hello {name}");
+        await context.Response.WriteAsync($"Hello {name}!");
+    });
+});
+
+
+
+//terminal middleware - koñczy przetwarzanie ¿¹dania
+app.Run(async (context) =>
+{
+    Console.WriteLine("Run: Hello World!");
+    await context.Response.WriteAsync("Hello World!");
+});
+
+
+
+
 //sposoby sprawdzania œrodowiska
 if (app.Environment.IsDevelopment())
 {
