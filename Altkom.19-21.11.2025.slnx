@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="ConsoleApp/ConsoleApp.csproj" />
+  <Project Path="WebApp/WebApp.csproj" Id="f97d9df1-413b-477f-93b2-b8553e40649b" />
 </Solution>
