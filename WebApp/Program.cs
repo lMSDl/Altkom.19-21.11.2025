@@ -1,3 +1,5 @@
+using WebApp.Middleware;
+
 var builder = WebApplication.CreateBuilder(args);
 //miejsce na konfiguracjê DI, Loggera, Konfiguracji
 
@@ -14,6 +16,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 //dostep do konfiguracji loggera
 //builder.Logging
+
+builder.Services.AddTransient<Use1Middleware>();
+builder.Services.AddTransient<RunMiddleware>();
 
 
 var app = builder.Build();
@@ -33,8 +38,9 @@ var app = builder.Build();
 //app.Services
 
 
+
 //middleware - mo¿liwoœæ wykonania akcji przed i po przekazaniu kontekstu do kolejnego middeware
-app.Use(async (context, next) =>
+/*app.Use(async (context, next) =>
 {
 
     Console.WriteLine("Begin of Use1");
@@ -42,7 +48,10 @@ app.Use(async (context, next) =>
     await next(context);
 
     Console.WriteLine("End of Use1");
-});
+});*/
+//zastêpujeny powy¿sz¹ implementacjê z u¿yciem osobnej klasy
+//klasa ta implementuje interfejs IMiddleware przez co musi byæ zarejestrowana w DI
+app.UseMiddleware<Use1Middleware>();
 
 
 //przekierowanie do nowego potoku na podstawie œcie¿ki (path) zapytania
@@ -55,41 +64,39 @@ app.Map("/hello", helloApp =>
         Console.WriteLine("End of Hello Use");
     });
 
-    helloApp.Run(async (context) =>
+    /*helloApp.Run(async (context) =>
     {
         Console.WriteLine("Hello Run: Hello World!");
         await context.Response.WriteAsync("Hello World from /hello!");
-    });
+    });*/
+    helloApp.UseMiddleware<HelloRunMiddleware>();
 });
 
 
-app.Use(async (context, next) =>
+/*app.Use(async (context, next) =>
 {
     Console.WriteLine("Begin of Use2");
     await next(context);
     Console.WriteLine("End of Use2");
-});
+});*/
+//zastêpujeny powy¿sz¹ implementacjê z u¿yciem osobnej klasy
+//klasa ta nie implementuje interfejs IMiddleware przez co nie musi byæ zarejestrowana w DI
+//musi jednak posiadaæ konstruktor przyjmuj¹cy RequestDelegate
+//oraz metodê InvokeAsync przyjmuj¹c¹ HttpContext oraz zwracaj¹c¹ Task
+app.UseMiddleware<Use2Middleware>();
 
 //przekierowanie do nowego potoku na podstawie warunku (predicate) - w tym przyk³adzie sprawdzamy czy w zapytaniu jest parametr "name"
-app.MapWhen(context => context.Request.Query.ContainsKey("name"), mappedApp =>
-{
-    mappedApp.Run(async context =>
-    {
-        var name = context.Request.Query["name"];
-
-        Console.WriteLine($"MapWhen: hello {name}");
-        await context.Response.WriteAsync($"Hello {name}!");
-    });
-});
+app.MapWhen(context => context.Request.Query.ContainsKey("name"), MapWhenApp()); // nie ma gotowego middleware dla MapWhen, wiêc definiujemy go jako metodê zwracaj¹c¹ Action<IApplicationBuilder>
 
 
 
 //terminal middleware - koñczy przetwarzanie ¿¹dania
-app.Run(async (context) =>
+/*app.Run(async (context) =>
 {
     Console.WriteLine("Run: Hello World!");
     await context.Response.WriteAsync("Hello World!");
-});
+});*/
+app.UseMiddleware<RunMiddleware>();
 
 
 
@@ -99,11 +106,11 @@ if (app.Environment.IsDevelopment())
 {
     app.MapGet("/", () => "Hello from development!");
 }
-else if(app.Environment.IsStaging())
+else if (app.Environment.IsStaging())
 {
     app.MapGet("/", () => "Hello from staging!");
 }
-else if(app.Environment.IsProduction())
+else if (app.Environment.IsProduction())
 {
     app.MapGet("/", () => "Hello from production!");
 }
@@ -119,3 +126,17 @@ app.MapGet("/error", x => throw new Exception());
 //app.MapGet("/", (ILogger<Program> logger) => { logger.LogDebug("ala ma kota"); return "Hello World!"; });
 
 app.Run();
+
+static Action<IApplicationBuilder> MapWhenApp()
+{
+    return mappedApp =>
+    {
+        mappedApp.Run(async context =>
+        {
+            var name = context.Request.Query["name"];
+
+            Console.WriteLine($"MapWhen: hello {name}");
+            await context.Response.WriteAsync($"Hello {name}!");
+        });
+    };
+}
