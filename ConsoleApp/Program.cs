@@ -1,5 +1,6 @@
 ﻿
 
+using ConsoleApp;
 using ConsoleApp.Configurations.Models;
 using ConsoleApp.Services;
 using Microsoft.Extensions.Configuration;
@@ -51,6 +52,7 @@ serviceCollection.AddLogging(builder =>
 });
 
 serviceCollection.AddTransient<SomeService>();
+serviceCollection.AddTransient<LoggerDemo>();
 
 IServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
@@ -66,6 +68,8 @@ logger.LogWarning("This is a warning log.");
 logger.LogError("This is an error log.");
 logger.LogCritical("This is a critical log.");
 
+
+serviceProvider.GetRequiredService<LoggerDemo>().Work();
 
 
 Console.ReadLine();

@@ -26,7 +26,8 @@
     "Console": {
       "LogLevel": {
         "ConsoleApp.Services.SomeService": "Trace"
-      }
+      },
+      "IncludeScopes": true
     }
   }
 }
