@@ -4,6 +4,7 @@ using ConsoleApp.Configurations.Models;
 using ConsoleApp.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 
 //Microsoft.Extensions.Configuration
@@ -34,75 +35,40 @@ IConfiguration config = new ConfigurationBuilder()
 
     .Build();
 
-//obiekt do konfiguracji wstrzykiwania zależności
-var serviceCollection = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
 
-//rejestracja serwisów
+IServiceCollection serviceCollection = new ServiceCollection();
 
-serviceCollection.AddSingleton<IConfiguration>(config);
-
-
-//transient - zawsze nowa instancja
-if (DateTime.Now.Second % 2 == 0)
+serviceCollection.AddLogging(builder =>
 {
-    //automatyczna rejestracja klasy na interfejs
-    serviceCollection.AddTransient<IOutputService, DebugOutputService>();
-}
-else
-{
-    //manualna rejestracja klasy na interfejs z parametrem konstruktora
-    serviceCollection.AddTransient<IOutputService>(localServiceProvider =>
-                                                    //pobieramy wymagany serwis z kontenera
-                                                    new DebugOutputService(localServiceProvider.GetRequiredService<IFontService>(),
-                                                    //parameter count przekazany ręcznie
-                                                    5));
-}
+    builder.ClearProviders();
 
-//scoped - jedna instancja na scope (w aplikacji konsolowej scope działa jak singleton)
-serviceCollection.AddScoped<IOutputService, ConsoleOutputService>();
+    builder.AddConsole();
+    builder.AddDebug();
+    builder.AddEventLog(x => { x.LogName = "Application"; x.SourceName = "ConsoleApp"; });
+    builder.AddConfiguration(config.GetSection("Logging"));
 
-//singleton - zawsze ta sama instancja
-serviceCollection.AddSingleton<IFontService, SubZeroFontService>();
-serviceCollection.AddSingleton<IFontService, StandardFontService>();
+    //builder.SetMinimumLevel(LogLevel.Trace);
+});
 
+serviceCollection.AddTransient<SomeService>();
 
-//zbudowanie dostawcy usług
-var serviceProvider = serviceCollection.BuildServiceProvider();
+IServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
+var someService = serviceProvider.GetRequiredService<SomeService>();
+someService.DoWork();
 
-//pobranie pojedynczej usługi - jeśli wiele usług pod tym samym interfejsem, powoduje wybranie tej ostatnio zarejestrowanej
-var outputService = serviceProvider.GetRequiredService<IOutputService>();
-outputService.Print("Hello from Output Service!");
+var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
 
-
-//pobieramy kolekcję usług o tym samym zarejestrowanym interfejsie
-foreach (var service in serviceProvider.GetServices<IOutputService>())
-{
-    service.Print("Hello from multiple Output Services!");
-}
+logger.LogTrace("This is a trace log.");
+logger.LogDebug("This is a debug log.");
+logger.LogInformation("This is an information log.");
+logger.LogWarning("This is a warning log.");
+logger.LogError("This is an error log.");
+logger.LogCritical("This is a critical log.");
 
 
 
-//symulacja scope - w aplikacji webowej scope jest tworzony na czas obsługi żądania
-for (int i = 0; i < 3; i++)
-{
-    using (var scope = serviceProvider.CreateScope())
-    {
-        {
-            outputService = scope.ServiceProvider.GetRequiredService<IOutputService>();
-            outputService.Print($"Hello from scoped Output Service! Scope {i + 1}");
-        }
-        {
-            outputService = scope.ServiceProvider.GetRequiredService<IOutputService>();
-            outputService.Print($"Hello from scoped Output Service! Scope {i + 1} - second call");
-        }    
-    
-    }
-
-}
-
-
-    Console.ReadLine();
+Console.ReadLine();
 
 
 void Introduction()
@@ -190,4 +156,76 @@ static void Configuration(IConfiguration config)
     var greetings = config.GetSection("Greetings").Get<Greetings>();
 
     Console.WriteLine($"{greetings.Value} from {greetings.Target.From} to {greetings.Target.To}");
+}
+
+static void DependencyInjection(IConfiguration config)
+{
+    //obiekt do konfiguracji wstrzykiwania zależności
+    var serviceCollection = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+
+    //rejestracja serwisów
+
+    serviceCollection.AddSingleton<IConfiguration>(config);
+
+    serviceCollection.AddSingleton<Greetings>(config.GetSection("Greetings").Get<Greetings>());
+
+
+    //transient - zawsze nowa instancja
+    if (DateTime.Now.Second % 2 == 0)
+    {
+        //automatyczna rejestracja klasy na interfejs
+        serviceCollection.AddTransient<IOutputService, DebugOutputService>();
+    }
+    else
+    {
+        //manualna rejestracja klasy na interfejs z parametrem konstruktora
+        serviceCollection.AddTransient<IOutputService>(localServiceProvider =>
+                                                        //pobieramy wymagany serwis z kontenera
+                                                        new DebugOutputService(localServiceProvider.GetRequiredService<IFontService>(),
+                                                        //parameter count przekazany ręcznie
+                                                        5));
+    }
+
+    //scoped - jedna instancja na scope (w aplikacji konsolowej scope działa jak singleton)
+    serviceCollection.AddScoped<IOutputService, ConsoleOutputService>();
+
+    //singleton - zawsze ta sama instancja
+    serviceCollection.AddSingleton<IFontService, SubZeroFontService>();
+    serviceCollection.AddSingleton<IFontService, StandardFontService>();
+
+
+    //zbudowanie dostawcy usług
+    var serviceProvider = serviceCollection.BuildServiceProvider();
+
+
+    //pobranie pojedynczej usługi - jeśli wiele usług pod tym samym interfejsem, powoduje wybranie tej ostatnio zarejestrowanej
+    var outputService = serviceProvider.GetRequiredService<IOutputService>();
+    outputService.Print("Hello from Output Service!");
+
+
+    //pobieramy kolekcję usług o tym samym zarejestrowanym interfejsie
+    foreach (var service in serviceProvider.GetServices<IOutputService>())
+    {
+        service.Print("Hello from multiple Output Services!");
+    }
+
+
+
+    //symulacja scope - w aplikacji webowej scope jest tworzony na czas obsługi żądania
+    for (int i = 0; i < 3; i++)
+    {
+        using (var scope = serviceProvider.CreateScope())
+        {
+            {
+                outputService = scope.ServiceProvider.GetRequiredService<IOutputService>();
+                outputService.Print($"Hello from scoped Output Service! Scope {i + 1}");
+            }
+            {
+                outputService = scope.ServiceProvider.GetRequiredService<IOutputService>();
+                outputService.Print($"Hello from scoped Output Service! Scope {i + 1} - second call");
+            }
+
+        }
+
+    }
 }

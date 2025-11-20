@@ -9,5 +9,24 @@
       "From": "Json",
       "To": "Tom"
     }
+  },
+
+  "Logging": {
+    "LogLevel": {
+      "Default": "Trace",
+      "ConsoleApp.Services.SomeService": "Information"
+    },
+
+    "EventLog": {
+      "LogLevel": {
+        "Default": "Error"
+      }
+    },
+
+    "Console": {
+      "LogLevel": {
+        "ConsoleApp.Services.SomeService": "Trace"
+      }
+    }
   }
 }
