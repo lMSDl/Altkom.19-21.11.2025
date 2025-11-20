@@ -51,8 +51,8 @@ var app = builder.Build();
 });*/
 //zastêpujeny powy¿sz¹ implementacjê z u¿yciem osobnej klasy
 //klasa ta implementuje interfejs IMiddleware przez co musi byæ zarejestrowana w DI
-app.UseMiddleware<Use1Middleware>();
-
+//app.UseMiddleware<Use1Middleware>();
+app.Use1();
 
 //przekierowanie do nowego potoku na podstawie œcie¿ki (path) zapytania
 app.Map("/hello", helloApp =>
@@ -83,7 +83,8 @@ app.Map("/hello", helloApp =>
 //klasa ta nie implementuje interfejs IMiddleware przez co nie musi byæ zarejestrowana w DI
 //musi jednak posiadaæ konstruktor przyjmuj¹cy RequestDelegate
 //oraz metodê InvokeAsync przyjmuj¹c¹ HttpContext oraz zwracaj¹c¹ Task
-app.UseMiddleware<Use2Middleware>();
+//app.UseMiddleware<Use2Middleware>();
+app.Use2();
 
 //przekierowanie do nowego potoku na podstawie warunku (predicate) - w tym przyk³adzie sprawdzamy czy w zapytaniu jest parametr "name"
 app.MapWhen(context => context.Request.Query.ContainsKey("name"), MapWhenApp()); // nie ma gotowego middleware dla MapWhen, wiêc definiujemy go jako metodê zwracaj¹c¹ Action<IApplicationBuilder>
@@ -97,7 +98,6 @@ app.MapWhen(context => context.Request.Query.ContainsKey("name"), MapWhenApp());
     await context.Response.WriteAsync("Hello World!");
 });*/
 app.UseMiddleware<RunMiddleware>();
-
 
 
 
