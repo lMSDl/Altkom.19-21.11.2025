@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="ConsoleApp/ConsoleApp.csproj" />
+  <Project Path="Routing/Routing.csproj" Id="d8d460a4-af7f-4cc7-9c58-d6ddbce6abcb" />
   <Project Path="WebApp/WebApp.csproj" Id="f97d9df1-413b-477f-93b2-b8553e40649b" />
 </Solution>
