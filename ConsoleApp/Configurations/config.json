@@ -27,7 +27,10 @@
       "LogLevel": {
         "ConsoleApp.Services.SomeService": "Trace"
       },
-      "IncludeScopes": true
+      "IncludeScopes": true,
+      "UseUtcTimestamp": true,
+      "TimestampFormat": "hh:mm:ss - ",
+      "DisableColors": true
     }
   }
 }
