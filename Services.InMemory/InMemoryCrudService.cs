@@ -1,10 +1,11 @@
-﻿using Services.Interfaces;
+﻿using Models;
+using Services.Interfaces;
 
 namespace Services.InMemory
 {
     public class InMemoryCrudService<T> : ICrudService<T> where T : Models.Entity
     {
-        private ICollection<T> _entities;
+        protected ICollection<T> _entities;
 
         public InMemoryCrudService() : this(new List<T>())
         {
