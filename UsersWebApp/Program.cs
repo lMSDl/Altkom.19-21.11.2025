@@ -10,10 +10,11 @@ using Services.Bogus.Fakers;
 using Services.InMemory;
 using Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net;
 using System.Security.Claims;
 using System.Text;
 using UsersWebApp.Middleware;
+using UsersWebApp.Policy;
+using UsersWebApp.Policy.Handlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,8 +65,32 @@ builder.Services.AddAuthentication(options =>
         options.ExpireTimeSpan = TimeSpan.FromSeconds(30);
     });*/
 
+builder.Services.AddSingleton<IAuthorizationHandler, MinimumAgeHandler>();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("CreatePolicy", policy => policy.RequireRole(nameof(Roles.Create)));
+    options.AddPolicy("DeletePolicy", policy => policy.RequireRole(nameof(Roles.Delete)));
 
-builder.Services.AddAuthorization();
+    //options.AddPolicy("EditPolicy", policy => policy.RequireRole(nameof(Roles.Edit)));
+
+    //OR
+    //options.AddPolicy("EditPolicy", policy => policy.RequireRole(nameof(Roles.Edit), nameof(Roles.Create)));
+
+    //AND
+    options.AddPolicy("EditPolicy", policy => policy.RequireRole(nameof(Roles.Create)).RequireRole(nameof(Roles.Delete)));
+
+    /*options.AddPolicy("AgePolicy", policy => policy.RequireAssertion(context =>
+    {
+        if (context.User.HasClaim(x => x.Type == nameof(User.Age)))
+        {
+            var ageClaim = context.User.FindFirst(x => x.Type == nameof(User.Age));
+            return int.Parse(ageClaim.Value) >= 25;
+        }
+        return false;
+    }));*/
+    options.AddPolicy("AgePolicy", policy => policy.Requirements.Add(new MinimumAgePolicy(25)));
+
+});
 
 var app = builder.Build();
 
@@ -89,9 +114,9 @@ app.UseAuthorization();
 });*/
 
 app.MapGet("/users", [Authorize] (ICrudService<User> usersService) => usersService.ReadAsync());
-app.MapGet("/users/{id:int}", [Authorize] async (ICrudService<User> usersService, int id, HttpContext context) =>
+app.MapGet("/users/{id:int}", [Authorize(Policy = "AgePolicy")] async (ICrudService<User> usersService, int id, HttpContext context) =>
 {
-    
+
     var user = await usersService.ReadAsync(id);
     return user is not null ? Results.Ok(user) : Results.NotFound();
 });
@@ -113,7 +138,7 @@ app.MapPut("/users/{id:int}", [Authorize(Roles = "Create")][Authorize(Roles = "D
     await usersService.UpdateAsync(id, user);
     return Results.NoContent();
 });
-app.MapDelete("/users/{id:int}", [Authorize(Roles = nameof(Roles.Delete))] async (ICrudService<User> usersService, int id) =>
+app.MapDelete("/users/{id:int}", [Authorize(Policy = "DeletePolicy")] async (ICrudService<User> usersService, int id) =>
 {
     var existingUser = await usersService.ReadAsync(id);
     if (existingUser is null)
@@ -134,7 +159,8 @@ app.MapPost("/login", async (IConfiguration config, IAuth authService, User cred
     ICollection<Claim> claims = new List<Claim>
     {
         new Claim(ClaimTypes.Name, user.Username),
-        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new Claim(nameof(User.Age), user.Age.ToString())
     };
 
     foreach (string role in user.Roles.ToString().Split(", "))
