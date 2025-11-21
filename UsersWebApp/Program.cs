@@ -1,4 +1,6 @@
 using Bogus;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -8,6 +10,8 @@ using Services.Bogus.Fakers;
 using Services.InMemory;
 using Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
+using System.Security.Claims;
 using System.Text;
 using UsersWebApp.Middleware;
 
@@ -29,7 +33,7 @@ else
 
 builder.Services.AddTransient<LoggerMiddleware>();
 
-builder.Services.AddAuthentication(options =>
+/*builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -50,7 +54,15 @@ builder.Services.AddAuthentication(options =>
         //tutaj ustawiamy na zero, co oznacza brak tolerancji - token wygaœnie dok³adnie w momencie okreœlonym w polu Expire
         ClockSkew = TimeSpan.Zero
     };
-});
+});*/
+
+builder.Services.AddAuthentication(options => options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/cookie";
+        /*options.LogoutPath = "/logout";*/
+        options.ExpireTimeSpan = TimeSpan.FromSeconds(30);
+    });
 
 
 builder.Services.AddAuthorization();
@@ -127,6 +139,22 @@ app.MapPost("/login", async (IConfiguration config, IAuth authService, User cred
     var token = tokenHandler.CreateToken(tockenDescriptor);
 
     return Results.Ok(tokenHandler.WriteToken(token));
+});
+
+//username i password w query string dla uproszczenia wywo³ania w przegl¹darce
+app.MapGet("/cookie", async (HttpContext context, IAuth authService, string username, string password, string returnUrl) =>
+{
+    var user = await authService.GetAsync(username, password);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
+    var principal = new ClaimsPrincipal(identity);
+
+    await context.SignInAsync(principal);
+    return Results.Redirect(returnUrl);
 });
 
 app.Run();
