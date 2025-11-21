@@ -11,7 +11,7 @@ namespace Services.InMemory
 
         protected InMemoryUserService(ICollection<User> entites) : base(entites)
         {
-            CreateAsync(new User { Username = "admin", Password = "admin" }).Wait();
+            CreateAsync(new User { Username = "admin", Password = "admin", Roles = Roles.Create | Roles.Edit | Roles.Delete }).Wait();
         }
 
         public Task<User?> GetAsync(string username, string password)

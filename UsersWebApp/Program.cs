@@ -33,7 +33,7 @@ else
 
 builder.Services.AddTransient<LoggerMiddleware>();
 
-/*builder.Services.AddAuthentication(options =>
+builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -54,15 +54,15 @@ builder.Services.AddTransient<LoggerMiddleware>();
         //tutaj ustawiamy na zero, co oznacza brak tolerancji - token wygaœnie dok³adnie w momencie okreœlonym w polu Expire
         ClockSkew = TimeSpan.Zero
     };
-});*/
+});
 
-builder.Services.AddAuthentication(options => options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme)
+/*builder.Services.AddAuthentication(options => options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/cookie";
-        /*options.LogoutPath = "/logout";*/
+        *//*options.LogoutPath = "/logout";*//*
         options.ExpireTimeSpan = TimeSpan.FromSeconds(30);
-    });
+    });*/
 
 
 builder.Services.AddAuthorization();
@@ -89,17 +89,21 @@ app.UseAuthorization();
 });*/
 
 app.MapGet("/users", [Authorize] (ICrudService<User> usersService) => usersService.ReadAsync());
-app.MapGet("/users/{id:int}", [Authorize] async (ICrudService<User> usersService, int id) =>
+app.MapGet("/users/{id:int}", [Authorize] async (ICrudService<User> usersService, int id, HttpContext context) =>
 {
+    
     var user = await usersService.ReadAsync(id);
     return user is not null ? Results.Ok(user) : Results.NotFound();
 });
-app.MapPost("/users", [Authorize] async (ICrudService<User> usersService, User user) =>
+app.MapPost("/users", [Authorize(Roles = nameof(Roles.Create))] async (ICrudService<User> usersService, User user) =>
 {
     var userId = await usersService.CreateAsync(user);
     return Results.Created($"/users/{userId}", user);
 });
-app.MapPut("/users/{id:int}", [Authorize] async (ICrudService<User> usersService, int id, User user) =>
+
+//app.MapPut("/users/{id:int}", [Authorize(Roles = "Edit")] async (ICrudService<User> usersService, int id, User user) => //pojedyncza rola w pojedynczym Authorize - wymagana rola
+//app.MapPut("/users/{id:int}", [Authorize(Roles = "Create, Delete")] async (ICrudService<User> usersService, int id, User user) => //wiele ról po przecinku w pojedynczym Authorize - wymagana jedna z wymienionych ról
+app.MapPut("/users/{id:int}", [Authorize(Roles = "Create")][Authorize(Roles = "Delete")] async (ICrudService<User> usersService, int id, User user) => //wiele ról w wielu Authorize - wymagana kazda z ról
 {
     var existingUser = await usersService.ReadAsync(id);
     if (existingUser is null)
@@ -109,7 +113,7 @@ app.MapPut("/users/{id:int}", [Authorize] async (ICrudService<User> usersService
     await usersService.UpdateAsync(id, user);
     return Results.NoContent();
 });
-app.MapDelete("/users/{id:int}", [Authorize] async (ICrudService<User> usersService, int id) =>
+app.MapDelete("/users/{id:int}", [Authorize(Roles = nameof(Roles.Delete))] async (ICrudService<User> usersService, int id) =>
 {
     var existingUser = await usersService.ReadAsync(id);
     if (existingUser is null)
@@ -127,12 +131,25 @@ app.MapPost("/login", async (IConfiguration config, IAuth authService, User cred
     if (user is null)
         return Results.Unauthorized();
 
+    ICollection<Claim> claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.Name, user.Username),
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+    };
+
+    foreach (string role in user.Roles.ToString().Split(", "))
+    {
+        claims.Add(new Claim(ClaimTypes.Role, role));
+    }
+
+
     var tockenDescriptor = new SecurityTokenDescriptor
     {
-        Expires = DateTime.UtcNow.AddSeconds(30),
+        Expires = DateTime.UtcNow.AddMinutes(30),
         SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Auth:Key"])), SecurityAlgorithms.HmacSha256),
         Issuer = config["Auth:Issuer"],
-        Audience = config["Auth:Audience"]
+        Audience = config["Auth:Audience"],
+        Subject = new ClaimsIdentity(claims)
     };
 
     var tokenHandler = new JwtSecurityTokenHandler();
