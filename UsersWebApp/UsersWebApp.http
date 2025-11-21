@@ -1,0 +1,34 @@
+﻿@UsersWebApp_HostAddress = https://localhost:7259
+
+GET {{UsersWebApp_HostAddress}}/users
+
+###
+
+POST {{UsersWebApp_HostAddress}}/users
+Content-Type: application/json
+
+{
+  "Username": "admin",
+  "Password": "admin"
+}
+
+###
+
+@id=1
+GET {{UsersWebApp_HostAddress}}/users/{{id}}
+
+###
+
+PUT {{UsersWebApp_HostAddress}}/users/{{id}}
+Content-Type: application/json
+
+{
+  "Username": "nimda",
+  "Password": "nimda"
+}
+
+###
+
+DELETE {{UsersWebApp_HostAddress}}/users/{{id}}
+
+###

@@ -1,5 +1,10 @@
 <Solution>
   <Project Path="ConsoleApp/ConsoleApp.csproj" />
+  <Project Path="Models/Models.csproj" Id="7e9d79c4-1434-4f27-8983-bc34a3d09b40" />
   <Project Path="Routing/Routing.csproj" Id="d8d460a4-af7f-4cc7-9c58-d6ddbce6abcb" />
+  <Project Path="Services.Bogus/Services.Bogus.csproj" Id="c6aba0be-7574-4779-b57d-402cacaaf4b8" />
+  <Project Path="Services.InMemory/Services.InMemory.csproj" Id="a9942c68-ee53-44a4-a474-f31ee5f9af47" />
+  <Project Path="Services.Interfaces/Services.Interfaces.csproj" Id="ffb146bf-19b9-467c-a6b6-e5c7ffeb7273" />
+  <Project Path="UsersWebApp/UsersWebApp.csproj" Id="fb01f869-8685-4e6f-97b8-a86b490762cc" />
   <Project Path="WebApp/WebApp.csproj" Id="f97d9df1-413b-477f-93b2-b8553e40649b" />
 </Solution>
